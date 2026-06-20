@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #121212;
+  --surface: #181818;
+  --surface-mid: #1f1f1f;
+  --surface-card: #252525;
+  --surface-card-alt: #272727;
+  --border-color: #4d4d4d;
+  --border-light: #7c7c7c;
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-near-white: #cbcbcb;
+  --text-negative: #f3727f;
+  --text-warning: #ffa42b;
+  --text-announcement: #539df5;
+  --accent: #1ed760;
+  --accent-border: #1db954;
+  --shadow-medium: rgba(0, 0, 0, 0.3) 0 8px 8px;
+  --shadow-heavy: rgba(0, 0, 0, 0.5) 0 8px 24px;
+  --inset-border: rgb(18, 18, 18) 0 1px 0, rgb(124, 124, 124) 0 0 0 1px inset;
+  --font-ui: SpotifyMixUI, CircularSp, CircularSp-Arab, CircularSp-Hebr,
+    CircularSp-Cyrl, CircularSp-Grek, CircularSp-Deva, "Helvetica Neue",
+    helvetica, arial, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo,
+    "MS Gothic", sans-serif;
+  --font-title: SpotifyMixUITitle, CircularSp, CircularSp-Arab, CircularSp-Hebr,
+    CircularSp-Cyrl, CircularSp-Grek, CircularSp-Deva, "Helvetica Neue",
+    helvetica, arial, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo,
+    "MS Gothic", sans-serif;
+}
+
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
+
+.title-font {
+  font-family: var(--font-title);
+}
+
+.pill-button {
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.focus-ring:focus-visible {
+  outline: 1px solid #000;
+  outline-offset: 1px;
+}
+
+.spotify-input {
+  border-radius: 500px;
+  box-shadow: var(--inset-border);
+  background: var(--surface-mid);
+}
+
+.surface-0 {
+  background: var(--background);
+}
+
+.surface-1 {
+  background: var(--surface);
+}
+
+.surface-2 {
+  background: var(--surface-mid);
+}
+
+.surface-card {
+  background: var(--surface-card);
+}
+
+.surface-card-alt {
+  background: var(--surface-card-alt);
+}
+
+.elevate-medium:hover {
+  box-shadow: var(--shadow-medium);
+}
+
+.elevate-heavy {
+  box-shadow: var(--shadow-heavy);
+}
+
+.hljs {
+  background: #181818 !important;
+  color: #fdfdfd !important;
+  border-radius: 8px;
+  padding: 1rem 1.25rem !important;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.prose pre {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.prose img {
+  border-radius: 6px;
+}
+
+.prose table {
+  display: block;
+  overflow-x: auto;
+}
+
+.prose blockquote {
+  border-left-width: 2px;
+  border-left-color: var(--border-light);
+  font-style: normal;
+}
+
+.prose {
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  color: var(--text-primary);
+  font-family: var(--font-title);
+  line-height: 1.2;
+}
+
+.prose p,
+.prose li {
+  color: var(--text-near-white);
+}
+
+.prose a {
+  color: var(--accent);
+}
+
+.grain-bg {
+  background-image:
+    radial-gradient(circle at 16% 10%, rgba(255, 255, 255, 0.06), transparent 30%),
+    radial-gradient(circle at 88% 18%, rgba(255, 255, 255, 0.05), transparent 27%),
+    linear-gradient(180deg, #181818 0%, #121212 50%, #121212 100%);
+}
+
+@media (max-width: 896px) {
+  body {
+    padding-bottom: 74px;
+  }
+}
