@@ -32,6 +32,8 @@
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@typescript-eslint/eslint-plugin": "^8.61.1",
+    "@typescript-eslint/parser": "^8.61.1",
     "autoprefixer": "^10",
     "dotenv": "^16.5.0",
     "eslint": "^9",
