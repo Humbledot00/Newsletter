@@ -32,4 +32,4 @@ export function absoluteUrl(path: string): string {
  * Site name from env, with a sensible default.
  */
 export const SITE_NAME =
-  process.env.NEXT_PUBLIC_SITE_NAME ?? "My Newsletter"
+  process.env.NEXT_PUBLIC_SITE_NAME ?? "Shreyas's Newsletter"
