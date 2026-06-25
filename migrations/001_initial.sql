@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS subscribers (
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'unsubscribed')),
   token TEXT NOT NULL UNIQUE DEFAULT uuid_generate_v4()::TEXT,
   subscribed_at TIMESTAMPTZ DEFAULT NOW(),
-  unsubscribed_at TIMESTAMPTZ
+  unsubscribed_at TIMESTAMPTZ,
+  is_deleted BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 -- Page views table

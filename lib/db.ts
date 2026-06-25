@@ -35,6 +35,7 @@ export interface Subscriber {
   token: string
   subscribed_at: string
   unsubscribed_at: string | null
+  is_deleted: boolean
 }
 
 // Query helpers
@@ -102,17 +103,7 @@ export async function getAdminStats() {
     SELECT COUNT(*) AS active_subscribers
     FROM subscribers
     WHERE status = 'active'
-  `
-  return {
-    published: Number(stats.published),
-    drafts: Number(stats.drafts),
-    scheduled: Number(stats.scheduled),
-    activeSubscribers: Number(subStats.active_subscribers),
-  }
-}
-
-export async function getRecentPosts(limit = 5) {
-  const rows = await sql`
+        AND is_deleted = FALSE
     SELECT id, title, slug, status, publish_date, tags
     FROM posts
     ORDER BY created_at DESC
@@ -126,10 +117,21 @@ export async function getActiveSubscribers(limit = 10): Promise<Pick<Subscriber,
     SELECT id, email, subscribed_at
     FROM subscribers
     WHERE status = 'active'
+      AND is_deleted = FALSE
     ORDER BY subscribed_at DESC
     LIMIT ${limit}
   `
   return rows as Pick<Subscriber, "id" | "email" | "subscribed_at">[]
+}
+
+export async function getAllSubscribers(limit = 10): Promise<Pick<Subscriber, "id" | "email" | "status" | "subscribed_at" | "unsubscribed_at" | "is_deleted">[]> {
+  const rows = await sql`
+    SELECT id, email, status, subscribed_at, unsubscribed_at, is_deleted
+    FROM subscribers
+    ORDER BY subscribed_at DESC
+    LIMIT ${limit}
+  `
+  return rows as Pick<Subscriber, "id" | "email" | "status" | "subscribed_at" | "unsubscribed_at" | "is_deleted">[]
 }
 
 export async function countPublishedPosts(): Promise<number> {

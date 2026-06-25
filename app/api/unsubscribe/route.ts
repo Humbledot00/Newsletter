@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   await sql`
     UPDATE subscribers
-    SET status = 'unsubscribed', unsubscribed_at = NOW()
+    SET status = 'unsubscribed', unsubscribed_at = NOW(), is_deleted = TRUE
     WHERE id = ${sub.id}
   `
 

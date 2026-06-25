@@ -62,13 +62,14 @@ export async function POST(req: NextRequest) {
       }
     }
     if (sub.status === "unsubscribed") {
-      // Re-subscribe: reset to pending with a new token
+      // Re-subscribe: reset to pending with a new token and clear soft delete
       const [updated] = await sql`
         UPDATE subscribers
         SET status = 'pending',
             token = uuid_generate_v4()::TEXT,
             subscribed_at = NOW(),
-            unsubscribed_at = NULL
+            unsubscribed_at = NULL,
+            is_deleted = FALSE
         WHERE id = ${sub.id}
         RETURNING token
       ` as { token: string }[]

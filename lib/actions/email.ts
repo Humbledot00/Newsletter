@@ -147,7 +147,9 @@ export async function sendPublishEmail(postId: string): Promise<void> {
   const post = postRow as Post
 
   const subscribers = (await sql`
-    SELECT id, email, token FROM subscribers WHERE status = 'active'
+    SELECT id, email, token FROM subscribers
+    WHERE status = 'active'
+      AND is_deleted = FALSE
   `) as Pick<Subscriber, "id" | "email" | "token">[]
 
   if (subscribers.length === 0) return

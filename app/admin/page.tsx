@@ -1,4 +1,4 @@
-import { getActiveSubscribers, getAdminStats, getRecentPosts } from "@/lib/db"
+import { getAllSubscribers, getAdminStats, getRecentPosts } from "@/lib/db"
 import { formatDate } from "@/lib/utils"
 import Link from "next/link"
 import { FileText, Users, BookOpen, Clock } from "lucide-react"
@@ -32,10 +32,10 @@ const STATUS_BADGE: Record<string, string> = {
 }
 
 export default async function AdminDashboardPage() {
-  const [stats, recentPosts, activeSubscribers] = await Promise.all([
+  const [stats, recentPosts, subscribers] = await Promise.all([
     getAdminStats(),
     getRecentPosts(5),
-    getActiveSubscribers(10),
+    getAllSubscribers(10),
   ])
 
   return (
@@ -120,23 +120,27 @@ export default async function AdminDashboardPage() {
         </div>
 
         <div className="overflow-hidden rounded-xl bg-[var(--surface)]">
-          {activeSubscribers.length === 0 ? (
+          {subscribers.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-sm text-[var(--text-secondary)]">No active subscribers yet.</p>
+              <p className="text-sm text-[var(--text-secondary)]">No subscribers yet.</p>
             </div>
           ) : (
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--surface-mid)] text-left text-xs uppercase tracking-[1px] text-[var(--text-secondary)]">
                   <th className="px-4 py-3 font-medium">Email</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
                   <th className="hidden px-4 py-3 font-medium sm:table-cell">Subscribed</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--surface-mid)]">
-                {activeSubscribers.map((subscriber) => (
+                {subscribers.map((subscriber) => (
                   <tr key={subscriber.id} className="hover:bg-[var(--surface-mid)]">
-                    <td className="px-4 py-3 font-medium text-[var(--text-primary)]">
+                    <td className={`px-4 py-3 font-medium ${subscriber.is_deleted ? "text-[var(--text-negative)]" : "text-[var(--text-primary)]"}`}>
                       {subscriber.email}
+                    </td>
+                    <td className="px-4 py-3 text-sm uppercase tracking-[0.9px] text-[var(--text-secondary)]">
+                      {subscriber.is_deleted ? "deleted" : subscriber.status}
                     </td>
                     <td className="hidden px-4 py-3 text-[var(--text-secondary)] sm:table-cell">
                       {formatDate(subscriber.subscribed_at)}
