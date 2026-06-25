@@ -121,6 +121,17 @@ export async function getRecentPosts(limit = 5) {
   return rows as Partial<Post>[]
 }
 
+export async function getActiveSubscribers(limit = 10): Promise<Pick<Subscriber, "id" | "email" | "subscribed_at">[]> {
+  const rows = await sql`
+    SELECT id, email, subscribed_at
+    FROM subscribers
+    WHERE status = 'active'
+    ORDER BY subscribed_at DESC
+    LIMIT ${limit}
+  `
+  return rows as Pick<Subscriber, "id" | "email" | "subscribed_at">[]
+}
+
 export async function countPublishedPosts(): Promise<number> {
   const [row] = await sql`
     SELECT COUNT(*) AS count FROM posts

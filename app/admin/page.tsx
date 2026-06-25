@@ -1,4 +1,4 @@
-import { getAdminStats, getRecentPosts } from "@/lib/db"
+import { getActiveSubscribers, getAdminStats, getRecentPosts } from "@/lib/db"
 import { formatDate } from "@/lib/utils"
 import Link from "next/link"
 import { FileText, Users, BookOpen, Clock } from "lucide-react"
@@ -32,9 +32,10 @@ const STATUS_BADGE: Record<string, string> = {
 }
 
 export default async function AdminDashboardPage() {
-  const [stats, recentPosts] = await Promise.all([
+  const [stats, recentPosts, activeSubscribers] = await Promise.all([
     getAdminStats(),
     getRecentPosts(5),
+    getActiveSubscribers(10),
   ])
 
   return (
@@ -101,6 +102,44 @@ export default async function AdminDashboardPage() {
                     </td>
                     <td className="hidden px-4 py-3 text-[var(--text-secondary)] sm:table-cell">
                       {formatDate(post.publish_date ?? null)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="title-font text-base font-bold text-[var(--text-primary)]">Subscribed Emails</h2>
+          <span className="text-xs uppercase tracking-[1.2px] text-[var(--text-secondary)]">
+            {stats.activeSubscribers} active
+          </span>
+        </div>
+
+        <div className="overflow-hidden rounded-xl bg-[var(--surface)]">
+          {activeSubscribers.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-sm text-[var(--text-secondary)]">No active subscribers yet.</p>
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--surface-mid)] text-left text-xs uppercase tracking-[1px] text-[var(--text-secondary)]">
+                  <th className="px-4 py-3 font-medium">Email</th>
+                  <th className="hidden px-4 py-3 font-medium sm:table-cell">Subscribed</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--surface-mid)]">
+                {activeSubscribers.map((subscriber) => (
+                  <tr key={subscriber.id} className="hover:bg-[var(--surface-mid)]">
+                    <td className="px-4 py-3 font-medium text-[var(--text-primary)]">
+                      {subscriber.email}
+                    </td>
+                    <td className="hidden px-4 py-3 text-[var(--text-secondary)] sm:table-cell">
+                      {formatDate(subscriber.subscribed_at)}
                     </td>
                   </tr>
                 ))}
