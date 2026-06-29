@@ -59,6 +59,7 @@ const sanitizeSchema = {
   ],
   attributes: {
     ...defaultSchema.attributes,
+    img: ["src", "alt", "title", "loading", "decoding", "className"],
     code: ["className"],
     span: ["className"],
     div: ["className"],
@@ -67,6 +68,16 @@ const sanitizeSchema = {
 
 // MDX component overrides
 const mdxComponents = {
+  img: ({ alt, src, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
+    <img
+      src={src ?? ""}
+      alt={alt ?? ""}
+      loading="lazy"
+      decoding="async"
+      className="my-6 rounded-lg border border-[var(--surface-mid)] object-cover shadow-sm"
+      {...props}
+    />
+  ),
   pre: ({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) => {
     const codeChild = (children as React.ReactElement<{ className?: string; children?: React.ReactNode }>)?.props
     const code = String(codeChild?.children ?? "")
