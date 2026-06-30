@@ -103,7 +103,19 @@ export async function getAdminStats() {
     SELECT COUNT(*) AS active_subscribers
     FROM subscribers
     WHERE status = 'active'
-        AND is_deleted = FALSE
+      AND is_deleted = FALSE
+  `
+
+  return {
+    published: Number(stats.published),
+    drafts: Number(stats.drafts),
+    scheduled: Number(stats.scheduled),
+    activeSubscribers: Number(subStats.active_subscribers),
+  }
+}
+
+export async function getRecentPosts(limit = 5): Promise<Partial<Post>[]> {
+  const rows = await sql`
     SELECT id, title, slug, status, publish_date, tags
     FROM posts
     ORDER BY created_at DESC
