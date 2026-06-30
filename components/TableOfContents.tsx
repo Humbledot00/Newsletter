@@ -71,7 +71,7 @@ export function TableOfContents({ containerId }: { containerId: string }) {
                   }`}
                   aria-hidden="true"
                 />
-                {h.text}
+                {h.text.replace('#', "")}
               </a>
             </li>
           )
