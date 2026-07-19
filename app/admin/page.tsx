@@ -1,7 +1,8 @@
-import { getAllSubscribers, getAdminStats, getRecentPosts } from "@/lib/db"
+import { getActiveSubscribers, getAllSubscribers, getAdminStats, getRecentPosts, getPostPerformance, getRecentEmailOpens } from "@/lib/db"
 import { formatDate } from "@/lib/utils"
+import CustomEmailModal from "@/components/admin/CustomEmailModal"
 import Link from "next/link"
-import { FileText, Users, BookOpen, Clock } from "lucide-react"
+import { FileText, Users, BookOpen, Clock, Eye, Mail, ArrowUpRight } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -32,10 +33,13 @@ const STATUS_BADGE: Record<string, string> = {
 }
 
 export default async function AdminDashboardPage() {
-  const [stats, recentPosts, subscribers] = await Promise.all([
+  const [stats, recentPosts, activeSubscribers, subscribers, performance, recentOpens] = await Promise.all([
     getAdminStats(),
     getRecentPosts(5),
+    getActiveSubscribers(100),
     getAllSubscribers(10),
+    getPostPerformance(4),
+    getRecentEmailOpens(5),
   ])
 
   return (
@@ -47,11 +51,14 @@ export default async function AdminDashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard label="Published Posts" value={stats.published} icon={BookOpen} />
         <StatCard label="Drafts" value={stats.drafts} icon={FileText} />
         <StatCard label="Scheduled" value={stats.scheduled} icon={Clock} />
         <StatCard label="Subscribers" value={stats.activeSubscribers} icon={Users} />
+        <StatCard label="Page Views" value={stats.pageViews} icon={Eye} />
+        <StatCard label="Email Opens" value={stats.emailOpens} icon={Mail} />
+        <StatCard label="Email Clicks" value={stats.emailClicks} icon={ArrowUpRight} />
       </div>
 
       <div className="mt-8">
@@ -113,6 +120,64 @@ export default async function AdminDashboardPage() {
 
       <div className="mt-8">
         <div className="mb-4 flex items-center justify-between">
+          <h2 className="title-font text-base font-bold text-[var(--text-primary)]">Top Posts</h2>
+          <span className="text-xs uppercase tracking-[1.2px] text-[var(--text-secondary)]">
+            Performance snapshot
+          </span>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {performance.map((post) => (
+            <div key={post.id} className="rounded-xl bg-[var(--surface)] p-5">
+              <p className="text-xs uppercase tracking-[1.2px] text-[var(--text-secondary)] truncate">{post.title}</p>
+              <div className="mt-3 space-y-2 text-sm text-[var(--text-primary)]">
+                <p>{post.views} views</p>
+                <p>{post.email_opens} opens</p>
+                <p>{post.email_clicks} clicks</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="title-font text-base font-bold text-[var(--text-primary)]">Recent Email Opens</h2>
+          <span className="text-xs uppercase tracking-[1.2px] text-[var(--text-secondary)]">
+            Who opened the last emails
+          </span>
+        </div>
+
+        <div className="overflow-hidden rounded-xl bg-[var(--surface)]">
+          {recentOpens.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-sm text-[var(--text-secondary)]">No email opens tracked yet.</p>
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--surface-mid)] text-left text-xs uppercase tracking-[1px] text-[var(--text-secondary)]">
+                  <th className="px-4 py-3 font-medium">Email</th>
+                  <th className="px-4 py-3 font-medium">Post</th>
+                  <th className="px-4 py-3 font-medium">Opened</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--surface-mid)]">
+                {recentOpens.map((open, index) => (
+                  <tr key={`${open.opened_at}-${index}`} className="hover:bg-[var(--surface-mid)]">
+                    <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{open.email ?? "Unknown"}</td>
+                    <td className="px-4 py-3 text-[var(--text-secondary)]">{open.post_title}</td>
+                    <td className="px-4 py-3 text-[var(--text-secondary)]">{formatDate(open.opened_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <div className="mb-4 flex items-center justify-between">
           <h2 className="title-font text-base font-bold text-[var(--text-primary)]">Subscribed Emails</h2>
           <span className="text-xs uppercase tracking-[1.2px] text-[var(--text-secondary)]">
             {stats.activeSubscribers} active
@@ -153,12 +218,19 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className="mt-8 flex flex-wrap gap-3 items-center">
         <Link
           href="/admin/posts/add"
           className="pill-button bg-[var(--accent)] px-5 py-3 text-[10px] text-black"
         >
           Add Post
+        </Link>
+        <CustomEmailModal subscribers={activeSubscribers} />
+        <Link
+          href="/admin/custom-email"
+          className="pill-button bg-[var(--surface)] px-5 py-3 text-[10px] text-[var(--text-primary)]"
+        >
+          Send Custom Email
         </Link>
         <a
           href="/"

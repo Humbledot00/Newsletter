@@ -2,12 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, FileText, Plus, X } from "lucide-react"
+import { LayoutDashboard, FileText, Plus, Mail, X } from "lucide-react"
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/posts", label: "Posts", icon: FileText },
   { href: "/admin/posts/add", label: "Add Post", icon: Plus },
+  { href: "/admin/custom-email", label: "Custom Email", icon: Mail },
 ]
 
 interface SidebarProps {

@@ -43,13 +43,25 @@ async function sendSmtpEmail(payload: {
 function buildEmailHtml({
   post,
   unsubscribeUrl,
+  subscriberId,
   isTest = false,
 }: {
   post: Post
   unsubscribeUrl: string
+  subscriberId?: string
   isTest?: boolean
 }): string {
   const postUrl = absoluteUrl(`/posts/${post.slug}`)
+  const trackedUrl = subscriberId
+    ? absoluteUrl(
+        `/api/email/click?postId=${post.id}&subscriberId=${subscriberId}&url=${encodeURIComponent(
+          postUrl
+        )}`
+      )
+    : postUrl
+  const openPixelUrl = subscriberId
+    ? absoluteUrl(`/api/email/open?postId=${post.id}&subscriberId=${subscriberId}`)
+    : ""
   const year = new Date().getFullYear()
   const excerpt = post.description ?? ""
   const subject = isTest ? `[TEST] ${post.title}` : post.title
@@ -84,7 +96,7 @@ function buildEmailHtml({
               <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
                 <tr>
                   <td style="background:#2563eb;border-radius:6px;">
-                    <a href="${postUrl}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Read Full Post →</a>
+                    <a href="${trackedUrl}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Read Full Post →</a>
                   </td>
                 </tr>
               </table>
@@ -109,6 +121,7 @@ function buildEmailHtml({
       </td>
     </tr>
   </table>
+  ${openPixelUrl ? `<img src="${openPixelUrl}" alt="" width="1" height="1" style="display:none;max-height:0;max-width:0;visibility:hidden;" />` : ""}
 </body>
 </html>`
 }
@@ -159,7 +172,7 @@ export async function sendPublishEmail(postId: string): Promise<void> {
     await sendSmtpEmail({
       to: sub.email,
       subject: post.title,
-      html: buildEmailHtml({ post, unsubscribeUrl }),
+      html: buildEmailHtml({ post, unsubscribeUrl, subscriberId: sub.id }),
       text: buildEmailText({ post, unsubscribeUrl }),
     })
   }
@@ -180,6 +193,127 @@ export async function sendTestEmail(postId: string, toEmail: string): Promise<vo
     html: buildEmailHtml({ post, unsubscribeUrl, isTest: true }),
     text: buildEmailText({ post, unsubscribeUrl, isTest: true }),
   })
+}
+
+function buildCustomEmailHtml({
+  subject,
+  body,
+  unsubscribeUrl,
+}: {
+  subject: string
+  body: string
+  unsubscribeUrl: string
+}): string {
+  const year = new Date().getFullYear()
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="padding:24px 32px;border-bottom:1px solid #e7e7e5;">
+              <span style="font-size:18px;font-weight:700;color:#111111;">${SITE_NAME}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:40px 32px;">
+              <h1 style="margin:0 0 16px;font-size:26px;font-weight:700;color:#111111;line-height:1.3;">${subject}</h1>
+              <div style="font-size:16px;color:#444444;line-height:1.7;">
+                ${body}
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px;border-top:1px solid #e7e7e5;background:#fafaf8;">
+              <p style="margin:0;font-size:13px;color:#888888;">
+                © ${year} ${SITE_NAME} &nbsp;·&nbsp;
+                <a href="${absoluteUrl("/")}" style="color:#888888;">${absoluteUrl("/")}</a>
+              </p>
+              <p style="margin:8px 0 0;font-size:12px;color:#aaaaaa;">
+                <a href="${unsubscribeUrl}" style="color:#aaaaaa;">Unsubscribe</a> from this list.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+}
+
+function buildCustomEmailText({
+  subject,
+  body,
+  unsubscribeUrl,
+}: {
+  subject: string
+  body: string
+  unsubscribeUrl: string
+}): string {
+  return [
+    subject,
+    "=".repeat(subject.length),
+    "",
+    body.replace(/<[^>]+>/g, ""),
+    "",
+    "---",
+    `© ${new Date().getFullYear()} ${SITE_NAME} | ${absoluteUrl("/")}`,
+    `Unsubscribe: ${unsubscribeUrl}`,
+  ].join("\n")
+}
+
+export async function sendCustomEmail(
+  subject: string,
+  body: string,
+  subscriberIds: string[],
+  extraEmails: string[]
+): Promise<void> {
+  assertEmailEnv()
+
+  const validRecipients = new Map<string, { email: string; token: string }>()
+
+  if (subscriberIds.length > 0) {
+    const subscribers = (await sql`
+      SELECT id, email, token
+      FROM subscribers
+      WHERE id = ANY(${subscriberIds})
+        AND status = 'active'
+        AND is_deleted = FALSE
+    `) as Pick<Subscriber, "id" | "email" | "token">[]
+
+    for (const sub of subscribers) {
+      validRecipients.set(sub.email, { email: sub.email, token: sub.token })
+    }
+  }
+
+  for (const email of extraEmails) {
+    validRecipients.set(email, { email, token: "" })
+  }
+
+  if (validRecipients.size === 0) {
+    throw new Error("No recipients to send to")
+  }
+
+  for (const recipient of validRecipients.values()) {
+    const unsubscribeUrl = recipient.token
+      ? absoluteUrl(`/api/unsubscribe?token=${recipient.token}`)
+      : absoluteUrl("/unsubscribe")
+
+    await sendSmtpEmail({
+      to: recipient.email,
+      subject,
+      html: buildCustomEmailHtml({ subject, body, unsubscribeUrl }),
+      text: buildCustomEmailText({ subject, body, unsubscribeUrl }),
+    })
+  }
 }
 
 export async function sendConfirmationEmail(

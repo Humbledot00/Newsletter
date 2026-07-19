@@ -13,6 +13,7 @@ import { formatDate, absoluteUrl, SITE_NAME } from "@/lib/utils"
 import { PostCard } from "@/components/PostCard"
 import { CodeBlock } from "@/components/CodeBlock"
 import { ReadingProgress } from "@/components/ReadingProgress"
+import { PostViewTracker } from "@/components/PostViewTracker"
 import { TableOfContents } from "@/components/TableOfContents"
 
 interface PostPageProps {
@@ -243,6 +244,7 @@ export default async function PostPage({ params }: PostPageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <ReadingProgress />
+      <PostViewTracker postId={post.id} />
       <article className="mx-auto max-w-[1320px] px-4 py-8 sm:px-6">
       <div className="lg:flex lg:gap-10">
         <div className="min-w-0 flex-1">
@@ -389,23 +391,8 @@ export default async function PostPage({ params }: PostPageProps) {
                   <dt>Code blocks</dt>
                   <dd className="text-[var(--text-primary)]">{codeBlockCount}</dd>
                 </div>
-                <div className="flex justify-between">
-                  <dt>Words</dt>
-                  <dd className="text-[var(--text-primary)]">{wordCount.toLocaleString()}</dd>
-                </div>
               </dl>
             </div>
-
-            {sourceUrl && (
-              <a
-                href={sourceUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="block rounded-xl border border-dashed border-[var(--surface-mid)] p-5 font-mono text-[11px] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-              >
-                View source →
-              </a>
-            )}
           </div>
         </aside>
       </div>

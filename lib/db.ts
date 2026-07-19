@@ -38,6 +38,31 @@ export interface Subscriber {
   is_deleted: boolean
 }
 
+export interface PostPerformance {
+  id: string
+  title: string
+  slug: string
+  views: number
+  email_opens: number
+  email_clicks: number
+}
+
+export interface RecentEmailOpen {
+  opened_at: string
+  email: string
+  post_title: string
+}
+
+export interface AdminStats {
+  published: number
+  drafts: number
+  scheduled: number
+  activeSubscribers: number
+  pageViews: number
+  emailOpens: number
+  emailClicks: number
+}
+
 // Query helpers
 export async function getPublishedPosts(limit = 10, offset = 0): Promise<Post[]> {
   const rows = await sql`
@@ -91,29 +116,6 @@ export async function getRelatedPosts(postId: string, tags: string[], limit = 3)
   return rows as Post[]
 }
 
-export async function getAdminStats() {
-  const [stats] = await sql`
-    SELECT
-      COUNT(*) FILTER (WHERE status = 'published') AS published,
-      COUNT(*) FILTER (WHERE status = 'draft') AS drafts,
-      COUNT(*) FILTER (WHERE status = 'scheduled') AS scheduled
-    FROM posts
-  `
-  const [subStats] = await sql`
-    SELECT COUNT(*) AS active_subscribers
-    FROM subscribers
-    WHERE status = 'active'
-      AND is_deleted = FALSE
-  `
-
-  return {
-    published: Number(stats.published),
-    drafts: Number(stats.drafts),
-    scheduled: Number(stats.scheduled),
-    activeSubscribers: Number(subStats.active_subscribers),
-  }
-}
-
 export async function getRecentPosts(limit = 5): Promise<Partial<Post>[]> {
   const rows = await sql`
     SELECT id, title, slug, status, publish_date, tags
@@ -124,16 +126,65 @@ export async function getRecentPosts(limit = 5): Promise<Partial<Post>[]> {
   return rows as Partial<Post>[]
 }
 
-export async function getActiveSubscribers(limit = 10): Promise<Pick<Subscriber, "id" | "email" | "subscribed_at">[]> {
+export async function getActiveSubscribers(limit?: number): Promise<Pick<Subscriber, "id" | "email" | "subscribed_at">[]> {
+  if (limit !== undefined) {
+    const rows = await sql`
+      SELECT id, email, subscribed_at
+      FROM subscribers
+      WHERE status = 'active'
+        AND is_deleted = FALSE
+      ORDER BY subscribed_at DESC
+      LIMIT ${limit}
+    `
+    return rows as Pick<Subscriber, "id" | "email" | "subscribed_at">[]
+  }
+
   const rows = await sql`
     SELECT id, email, subscribed_at
     FROM subscribers
     WHERE status = 'active'
       AND is_deleted = FALSE
     ORDER BY subscribed_at DESC
-    LIMIT ${limit}
   `
   return rows as Pick<Subscriber, "id" | "email" | "subscribed_at">[]
+}
+
+export async function getActiveSubscribersWithToken(limit?: number): Promise<Pick<Subscriber, "id" | "email" | "token">[]> {
+  if (limit !== undefined) {
+    const rows = await sql`
+      SELECT id, email, token
+      FROM subscribers
+      WHERE status = 'active'
+        AND is_deleted = FALSE
+      ORDER BY subscribed_at DESC
+      LIMIT ${limit}
+    `
+    return rows as Pick<Subscriber, "id" | "email" | "token">[]
+  }
+
+  const rows = await sql`
+    SELECT id, email, token
+    FROM subscribers
+    WHERE status = 'active'
+      AND is_deleted = FALSE
+    ORDER BY subscribed_at DESC
+  `
+  return rows as Pick<Subscriber, "id" | "email" | "token">[]
+}
+
+export async function getSubscribersByIds(ids: string[]): Promise<Pick<Subscriber, "id" | "email" | "token">[]> {
+  if (ids.length === 0) {
+    return []
+  }
+
+  const rows = await sql`
+    SELECT id, email, token
+    FROM subscribers
+    WHERE id = ANY(${ids})
+      AND status = 'active'
+      AND is_deleted = FALSE
+  `
+  return rows as Pick<Subscriber, "id" | "email" | "token">[]
 }
 
 export async function getAllSubscribers(limit = 10): Promise<Pick<Subscriber, "id" | "email" | "status" | "subscribed_at" | "unsubscribed_at" | "is_deleted">[]> {
@@ -144,6 +195,108 @@ export async function getAllSubscribers(limit = 10): Promise<Pick<Subscriber, "i
     LIMIT ${limit}
   `
   return rows as Pick<Subscriber, "id" | "email" | "status" | "subscribed_at" | "unsubscribed_at" | "is_deleted">[]
+}
+
+export async function getAdminStats(): Promise<AdminStats> {
+  const [stats] = await sql`
+    SELECT
+      COUNT(*) FILTER (WHERE status = 'published') AS published,
+      COUNT(*) FILTER (WHERE status = 'draft') AS drafts,
+      COUNT(*) FILTER (WHERE status = 'scheduled') AS scheduled
+    FROM posts
+  `
+
+  const [subStats] = await sql`
+    SELECT COUNT(*) AS active_subscribers
+    FROM subscribers
+    WHERE status = 'active'
+      AND is_deleted = FALSE
+  `
+
+  const [analytics] = await sql`
+    SELECT
+      (SELECT COUNT(*) FROM page_views) AS page_views,
+      (SELECT COUNT(*) FROM email_opens) AS email_opens,
+      (SELECT COUNT(*) FROM email_clicks) AS email_clicks
+  `
+
+  return {
+    published: Number(stats.published),
+    drafts: Number(stats.drafts),
+    scheduled: Number(stats.scheduled),
+    activeSubscribers: Number(subStats.active_subscribers),
+    pageViews: Number(analytics.page_views),
+    emailOpens: Number(analytics.email_opens),
+    emailClicks: Number(analytics.email_clicks),
+  }
+}
+
+export async function recordPageView(postId: string): Promise<void> {
+  await sql`
+    INSERT INTO page_views (post_id)
+    VALUES (${postId})
+  `
+}
+
+export async function recordEmailOpen(postId: string, subscriberId: string | null): Promise<void> {
+  await sql`
+    INSERT INTO email_opens (post_id, subscriber_id)
+    VALUES (${postId}, ${subscriberId})
+  `
+}
+
+export async function recordEmailClick(postId: string, subscriberId: string | null): Promise<void> {
+  await sql`
+    INSERT INTO email_clicks (post_id, subscriber_id)
+    VALUES (${postId}, ${subscriberId})
+  `
+}
+
+export async function getPostPerformance(limit = 5): Promise<PostPerformance[]> {
+  const rows = await sql`
+    SELECT
+      p.id,
+      p.title,
+      p.slug,
+      COALESCE(v.views, 0) AS views,
+      COALESCE(o.opens, 0) AS email_opens,
+      COALESCE(c.clicks, 0) AS email_clicks
+    FROM posts p
+    LEFT JOIN (
+      SELECT post_id, COUNT(*) AS views
+      FROM page_views
+      GROUP BY post_id
+    ) v ON v.post_id = p.id
+    LEFT JOIN (
+      SELECT post_id, COUNT(*) AS opens
+      FROM email_opens
+      GROUP BY post_id
+    ) o ON o.post_id = p.id
+    LEFT JOIN (
+      SELECT post_id, COUNT(*) AS clicks
+      FROM email_clicks
+      GROUP BY post_id
+    ) c ON c.post_id = p.id
+    WHERE p.status = 'published'
+    ORDER BY v.views DESC NULLS LAST, o.opens DESC NULLS LAST
+    LIMIT ${limit}
+  `
+  return rows as PostPerformance[]
+}
+
+export async function getRecentEmailOpens(limit = 5): Promise<RecentEmailOpen[]> {
+  const rows = await sql`
+    SELECT
+      eo.opened_at,
+      s.email,
+      p.title AS post_title
+    FROM email_opens eo
+    JOIN posts p ON p.id = eo.post_id
+    LEFT JOIN subscribers s ON s.id = eo.subscriber_id
+    ORDER BY eo.opened_at DESC
+    LIMIT ${limit}
+  `
+  return rows as RecentEmailOpen[]
 }
 
 export async function countPublishedPosts(): Promise<number> {
