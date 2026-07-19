@@ -22,13 +22,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
   }
 
-  const subject = typeof (body as Record<string, unknown>).subject === "string" ? String((body as Record<string, unknown>).subject).trim() : ""
-  const emailBody = typeof (body as Record<string, unknown>).body === "string" ? String((body as Record<string, unknown>).body).trim() : ""
-  const subscriberIds = Array.isArray((body as Record<string, unknown>).subscriberIds)
-    ? (body as Record<string, unknown>).subscriberIds.filter((id) => typeof id === "string")
+  const data = body as Record<string, unknown>
+  const subject = typeof data.subject === "string" ? data.subject.trim() : ""
+  const emailBody = typeof data.body === "string" ? data.body.trim() : ""
+  const subscriberIds = Array.isArray(data.subscriberIds)
+    ? data.subscriberIds.filter((id) => typeof id === "string")
     : []
-  const extraEmails = Array.isArray((body as Record<string, unknown>).extraEmails)
-    ? (body as Record<string, unknown>).extraEmails
+  const extraEmails = Array.isArray(data.extraEmails)
+    ? data.extraEmails
         .filter((email) => typeof email === "string")
         .map((email) => email.trim().toLowerCase())
         .filter(Boolean)
